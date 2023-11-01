@@ -122,20 +122,13 @@ function generateDotNETProject(projectPath, options) {
 function generateReactApp(projectPath) {
     console.log('Generating React app with TypeScript support...');
   
-    const reactAppCreationProcess = shell.exec(`npx create-next-app@latest ${projectPath}/client --typescript --eslint --tailwind --no-src-dir --app --import-alias @`, { silent: false });
-  
-    reactAppCreationProcess.on('exit', (code) => {
-      if (code === 0) {
-        console.log('React app generation completed.');
-        continueProjectSetup(projectPath);
-      } else {
-        console.error('Error generating the React app.');
-      }
-    });
+    shell.exec(
+      `npx create-next-app@latest ${projectPath}/client --typescript --eslint --tailwind --no-src-dir --app --import-alias @`,
+      { silent: true }
+    );
   }
-  
 
-// Function to generate a dummy model using Prisma
+// Function to generate a dummy model ung Prisma
 function generateDummyModel(modelsFolderPath, modelName, properties) {
   const modelContent = `
 model ${modelName} {
