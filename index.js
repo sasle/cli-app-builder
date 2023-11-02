@@ -15,11 +15,6 @@ inquirer
       name: "projectName",
       message: "Enter the project name:",
     },
-    // {
-    //   type: 'confirm',
-    //   name: 'useTDD',
-    //   message: 'Do you want to use Test-Driven Development (TDD)?',
-    // },
   ])
   .then((answers) => {
     const projectPath = path.join(
@@ -46,7 +41,7 @@ function generateNodeJSProject(projectPath, options) {
   }
 
   // Generate .gitignore file
-  const gitignoreContent = `/node_modules`;
+  const gitignoreContent = `node_modules`;
   const gitignorePath = path.join(apiFolderPath, ".gitignore");
   writeFileSync(gitignorePath, gitignoreContent);
 
@@ -54,10 +49,50 @@ function generateNodeJSProject(projectPath, options) {
     console.log("Generating TDD tests...");
   }
 
+  generateEnvFile(apiFolderPath);
+  generatePrismaSchema(apiFolderPath);
   generateRouterFile(apiFolderPath);
   generateServerFile(apiFolderPath);
   generateReactApp(projectPath);
   console.log("Project created at " + projectPath);
+}
+
+function generatePrismaSchema(apiFolderPath) {
+  const prismaSchema = `
+  generator client {
+    provider = "prisma-client-js"
+  }
+  
+  datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+  }
+model Professional {
+  id        Int    @id @default(autoincrement())
+  name      String
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId Int
+}
+
+model Company {
+  id         Int         @id @default(autoincrement())
+  name       String
+  professionals Professional[]
+  products    Product[]
+}
+
+model Product {
+  id        Int     @id @default(autoincrement())
+  name      String
+  companyId Int
+  company   Company @relation(fields: [companyId], references: [id])
+}
+`;
+
+  const prismaSchemaPath = path.join(apiFolderPath, "prisma", "schema.prisma");
+  shell.mkdir("-p", path.join(apiFolderPath, "prisma"));
+  writeFileSync(prismaSchemaPath, prismaSchema);
+  console.log("Generated Prisma schema file.");
 }
 
 function generateRouterFile(apiFolderPath) {
@@ -131,6 +166,7 @@ app.listen(PORT, () => {
       "@types/express": "^4.17.20",
       "@types/cors": "2.8.15",
       typescript: "^5.2.2",
+      prisma: "^5.5.2",
     },
   };
 
@@ -177,6 +213,28 @@ app.listen(PORT, () => {
   } else {
     console.error("Error running npm add -D ts-node-dev.");
   }
+
+  const prismaMigrationProcess = shell.exec(
+    "npx prisma migrate dev --name init",
+    {
+      cwd: apiFolderPath,
+      stdio: "inherit",
+      silent: true,
+    }
+  );
+  if (prismaMigrationProcess.code === 0) {
+    console.log("Prisma migration completed.");
+  } else {
+    console.error("Error on Prisma migration.");
+  }
+}
+
+function generateEnvFile(apiFolderPath) {
+  const envContent = `DATABASE_URL="file:./dev.db"`;
+
+  const envFilePath = path.join(apiFolderPath, ".env");
+  writeFileSync(envFilePath, envContent);
+  console.log("Generated .env file");
 }
 
 function generateReactApp(projectPath) {
