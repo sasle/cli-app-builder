@@ -3,8 +3,13 @@ import shell from "shelljs";
 import path from "path";
 import { writeFileSync } from "fs";
 
+// Define ANSI color codes
+const GREEN = "\x1b[32m";
+const RED = "\x1b[31m";
+const RESET = "\x1b[0m";
+
 process.on("SIGINT", () => {
-  console.log("Script terminated.");
+  console.log(`${RED}Script terminated.${RESET}`);
   process.exit(1);
 });
 
@@ -24,7 +29,7 @@ inquirer
     );
 
     if (shell.mkdir("-p", projectPath).code !== 0) {
-      console.error("Error creating the project directory.");
+      console.error(`${RED}Error creating the project directory.${RESET}`);
       process.exit(1);
     }
 
@@ -36,7 +41,7 @@ function generateNodeJSProject(projectPath, options) {
 
   const apiFolderPath = path.join(projectPath, "api");
   if (shell.mkdir("-p", apiFolderPath).code !== 0) {
-    console.error('Error creating the "api" folder.');
+    console.error(`${RED}Error creating the "api" folder.${RESET}`);
     process.exit(1);
   }
 
@@ -44,6 +49,7 @@ function generateNodeJSProject(projectPath, options) {
   const gitignoreContent = `node_modules`;
   const gitignorePath = path.join(apiFolderPath, ".gitignore");
   writeFileSync(gitignorePath, gitignoreContent);
+  console.log(`${GREEN}.gitignore file generated.${RESET}`);
 
   if (options.useTDD) {
     console.log("Generating TDD tests...");
@@ -54,7 +60,7 @@ function generateNodeJSProject(projectPath, options) {
   generateRouterFile(apiFolderPath);
   generateServerFile(apiFolderPath);
   generateReactApp(projectPath);
-  console.log("Project created at " + projectPath);
+  console.log(`Project created at ${projectPath}.`);
 }
 
 function generatePrismaSchema(apiFolderPath) {
@@ -93,7 +99,7 @@ function generatePrismaSchema(apiFolderPath) {
   const prismaSchemaPath = path.join(apiFolderPath, "prisma", "schema.prisma");
   shell.mkdir("-p", path.join(apiFolderPath, "prisma"));
   writeFileSync(prismaSchemaPath, prismaSchema);
-  console.log("Generated Prisma schema file.");
+  console.log(`${GREEN}Generated Prisma schema file.${RESET}`);
 }
 
 function generateRouterFile(apiFolderPath) {
@@ -197,13 +203,12 @@ router.get('/products', async (req, res) => {
   }
 });
 
-
 export default router;
 `;
 
   const routerFilePath = path.join(apiFolderPath, "router.ts");
   writeFileSync(routerFilePath, routerContent);
-  console.log("Generated router.ts file");
+  console.log(`${GREEN}Generated router.ts file.${RESET}`);
 }
 
 function generateServerFile(apiFolderPath) {
@@ -227,7 +232,7 @@ app.listen(PORT, () => {
 
   const serverFilePath = path.join(apiFolderPath, "server.ts");
   writeFileSync(serverFilePath, serverContent);
-  console.log("Generated server.ts file");
+  console.log(`${GREEN}Generated server.ts file.${RESET}`);
 
   const packageJsonContent = {
     name: "api",
@@ -257,7 +262,7 @@ app.listen(PORT, () => {
 
   // Write the JSON string to the package.json file
   writeFileSync(packageJsonPath, packageJsonString);
-  console.log("Generated package.json file");
+  console.log(`${GREEN}Generated package.json file.${RESET}`);
 
   const npmInstallProcess = shell.exec("npm install", {
     cwd: apiFolderPath,
@@ -265,9 +270,9 @@ app.listen(PORT, () => {
     silent: true,
   });
   if (npmInstallProcess.code === 0) {
-    console.log("npm install completed.");
+    console.log(`${GREEN}npm install completed.${RESET}`);
   } else {
-    console.error("Error running npm install.");
+    console.error(`${RED}Error running npm install.${RESET}`);
   }
 
   // Run npm tsc --init and npm add -D ts-node-dev
@@ -277,9 +282,9 @@ app.listen(PORT, () => {
     silent: true,
   });
   if (tscInitProcess.code === 0) {
-    console.log("npx tsc --init completed.");
+    console.log(`${GREEN}npx tsc --init completed.${RESET}`);
   } else {
-    console.error("Error running npm tsc --init.");
+    console.error(`${RED}Error running npm tsc --init.${RESET}`);
   }
 
   const tsNodeDevProcess = shell.exec("npm add -D ts-node-dev", {
@@ -288,9 +293,9 @@ app.listen(PORT, () => {
     silent: true,
   });
   if (tsNodeDevProcess.code === 0) {
-    console.log("npm add -D ts-node-dev completed.");
+    console.log(`${GREEN}npm add -D ts-node-dev completed.${RESET}`);
   } else {
-    console.error("Error running npm add -D ts-node-dev.");
+    console.error(`${RED}Error running npm add -D ts-node-dev.${RESET}`);
   }
 
   const prismaMigrationProcess = shell.exec(
@@ -302,9 +307,9 @@ app.listen(PORT, () => {
     }
   );
   if (prismaMigrationProcess.code === 0) {
-    console.log("Prisma migration completed.");
+    console.log(`${GREEN}Prisma migration completed.${RESET}`);
   } else {
-    console.error("Error on Prisma migration.");
+    console.error(`${RED}Error on Prisma migration.${RESET}`);
   }
 }
 
@@ -313,7 +318,7 @@ function generateEnvFile(apiFolderPath) {
 
   const envFilePath = path.join(apiFolderPath, ".env");
   writeFileSync(envFilePath, envContent);
-  console.log("Generated .env file");
+  console.log(`${GREEN}Generated .env file.${RESET}`);
 }
 
 function generateReactApp(projectPath) {
@@ -325,8 +330,8 @@ function generateReactApp(projectPath) {
   );
 
   if (reactInstallProcess.code === 0) {
-    console.log("React app created.");
+    console.log(`${GREEN}React app created.${RESET}`);
   } else {
-    console.error("Error creating React app.");
+    console.error(`${RED}Error creating React app.${RESET}`);
   }
 }
