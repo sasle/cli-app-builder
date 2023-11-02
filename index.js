@@ -4,11 +4,10 @@ import path from 'path';
 import { writeFileSync } from 'fs';
 
 process.on('SIGINT', () => {
-    console.log('Script terminated.');
-    process.exit(1);
-  });
+  console.log('Script terminated.');
+  process.exit(1);
+});
 
-  
 inquirer
   .prompt([
     {
@@ -17,20 +16,9 @@ inquirer
       message: 'Enter the project name:',
     },
     {
-      type: 'list',
-      name: 'backendFramework',
-      message: 'Select the backend framework:',
-      choices: ['Node.js', '.NET'],
-    },
-    {
       type: 'confirm',
       name: 'useTDD',
       message: 'Do you want to use Test-Driven Development (TDD)?',
-    },
-    {
-      type: 'confirm',
-      name: 'useMVC',
-      message: 'Do you want to use MVC structure?',
     },
   ])
   .then((answers) => {
@@ -41,18 +29,12 @@ inquirer
       process.exit(1);
     }
 
-    if (answers.backendFramework === 'Node.js') {
-      generateNodeJSProject(projectPath, answers);
-    } else if (answers.backendFramework === '.NET') {
-      generateDotNETProject(projectPath, answers);
-    } else {
-      console.error('Invalid backend framework selected.');
-    }
+    generateNodeJSProject(projectPath, answers);
   });
 
 function generateNodeJSProject(projectPath, options) {
   console.log(`Creating Node.js project at ${projectPath}...`);
-  
+
   const apiFolderPath = path.join(projectPath, 'api');
   if (shell.mkdir('-p', apiFolderPath).code !== 0) {
     console.error('Error creating the "api" folder.');
@@ -63,128 +45,131 @@ function generateNodeJSProject(projectPath, options) {
     console.log('Generating TDD tests...');
   }
 
-  if (options.useMVC) {
-    console.log('Generating MVC structure...');
-
-    const modelsFolderPath = path.join(apiFolderPath, 'models');
-    const controllersFolderPath = path.join(apiFolderPath, 'controllers');
-    const servicesFolderPath = path.join(apiFolderPath, 'services');
-    
-    if (shell.mkdir('-p', modelsFolderPath).code !== 0) {
-      console.error('Error creating the "models" folder.');
-      process.exit(1);
-    }
-
-    if (shell.mkdir('-p', controllersFolderPath).code !== 0) {
-      console.error('Error creating the "controllers" folder.');
-      process.exit(1);
-    }
-
-    if (shell.mkdir('-p', servicesFolderPath).code !== 0) {
-      console.error('Error creating the "services" folder.');
-      process.exit(1);
-    }
-
-    // Generate dummy models with basic properties using Prisma
-    generateDummyModel(modelsFolderPath, 'Professional', ['ID', 'Name', 'Description', 'IsActive']);
-    generateDummyModel(modelsFolderPath, 'Company', ['ID', 'Name', 'Description', 'IsActive']);
-    generateDummyModel(modelsFolderPath, 'Product', ['ID', 'Name', 'Description', 'IsActive']);
-
-    // Generate basic CRUD controllers and services for each model
-    generateCRUDController(controllersFolderPath, 'Professional', modelsFolderPath);
-    generateCRUDService(servicesFolderPath, 'Professional', modelsFolderPath);
-    generateCRUDController(controllersFolderPath, 'Company', modelsFolderPath);
-    generateCRUDService(servicesFolderPath, 'Company', modelsFolderPath);
-    generateCRUDController(controllersFolderPath, 'Product', modelsFolderPath);
-    generateCRUDService(servicesFolderPath, 'Product', modelsFolderPath);
-  }
-
+  generateRouterFile(apiFolderPath);
+  generateServerFile(apiFolderPath);
   generateReactApp(projectPath);
+  console.log("Project created at " + projectPath);
 }
 
-function generateDotNETProject(projectPath, options) {
-  console.log(`Creating .NET project at ${projectPath}...`);
-  // Implement .NET project generation logic here
-  // You can use shell commands or a project template
+function generateRouterFile(apiFolderPath) {
+  const routerContent = `
+import express from 'express';
 
-  if (options.useTDD) {
-    console.log('Generating TDD tests...');
-  }
-
-  if (options.useMVC) {
-    console.log('Generating MVC structure...');
-    // Implement MVC setup logic here
-  }
-
-  generateReactApp(projectPath);
-}
-
-function generateReactApp(projectPath) {
-    console.log('Generating React app with TypeScript support...');
-  
-    shell.exec(
-      `npx create-next-app@latest ${projectPath}/client --typescript --eslint --tailwind --no-src-dir --app --import-alias @`,
-      { silent: true }
-    );
-  }
-
-// Function to generate a dummy model ung Prisma
-function generateDummyModel(modelsFolderPath, modelName, properties) {
-  const modelContent = `
-model ${modelName} {
-  id       Int     @id @default(autoincrement())
-  ${properties.map((prop) => `${prop.padEnd(11)} String`).join('\n')}
-}`;
-  const modelFilePath = path.join(modelsFolderPath, `${modelName}.model.prisma`);
-  writeFileSync(modelFilePath, modelContent);
-  console.log(`Generated Prisma model for ${modelName}`);
-}
-
-// Function to generate basic CRUD controllers
-function generateCRUDController(controllersFolderPath, modelName, modelsFolderPath) {
-  const controllerContent = `
-const express = require('express');
 const router = express.Router();
-const ${modelName}Service = require('../services/${modelName}.service');
 
-router.get('/', async (req, res) => {
-  try {
-    const ${modelName.toLowerCase()} = await ${modelName}Service.getAll();
-    res.json(${modelName.toLowerCase()});
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+// Hello World route
+router.get('/', (req, res) => {
+  res.send('Hello, World!');
 });
 
-module.exports = router;
+router.get('/professionals', (req, res) => {
+    // Implement route logic for the "professionals" model
+});
+
+router.get('/companies', (req, res) => {
+    // Implement route logic for the "companies" model
+});
+
+router.get('/products', (req, res) => {
+    // Implement route logic for the "products" model
+});
+
+export default router;
 `;
-  const controllerFilePath = path.join(controllersFolderPath, `${modelName}.controller.js`);
-  writeFileSync(controllerFilePath, controllerContent);
-  console.log(`Generated CRUD controller for ${modelName}`);
+
+  const routerFilePath = path.join(apiFolderPath, 'router.ts');
+  writeFileSync(routerFilePath, routerContent);
+  console.log('Generated router.ts file');
 }
 
-// Function to generate basic CRUD services
-function generateCRUDService(servicesFolderPath, modelName, modelsFolderPath) {
-  const serviceContent = `
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+function generateServerFile(apiFolderPath) {
+  const serverContent = `
+import express from 'express';
+import cors from 'cors';
+import router from './router';
 
-// Dummy data for testing
-const ${modelName.toLowerCase()}Data = [
-  // Define your dummy data here
-];
+const app = express();
 
-const getAll = async () => {
-  // In a real implementation, you would interact with the database using Prisma
-  // Here, we return dummy data for testing
-  return ${modelName.toLowerCase()}Data;
-};
+app.use(cors());
+app.use(express.json());
 
-module.exports = {
-  getAll,
-};
+app.use('/', router);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(\`Server is running on port \${PORT}\`);
+});
 `;
-  const serviceFilePath = path.join(servicesFolderPath, `${modelName}.service.js`);
-  writeFileSync(serviceFilePath, serviceContent);
-  console.log(`Generated CRUD service for ${modelName}`);
+
+  const serverFilePath = path.join(apiFolderPath, 'server.ts');
+  writeFileSync(serverFilePath, serverContent);
+  console.log('Generated server.ts file');
+
+  const packageJsonContent = {
+    "name": "api",
+    "version": "1.0.0",
+    "description": "Your app description",
+    "main": "server.ts",
+    "scripts": {
+      "dev": "ts-node-dev --inspect --transpile-only --ignore-watch node_modules server.ts",
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "cors": "^2.8.5"
+    },
+    "devDependencies": {
+      "@types/node": "^20.8.10",
+      "@types/express": "^4.17.20",
+      "@types/cors": "2.8.15",
+      "typescript": "^5.2.2"
+    }
+  };
+
+  // Convert packageJsonContent to a JSON string
+  const packageJsonString = JSON.stringify(packageJsonContent, null, 2);
+
+  const packageJsonPath = path.join(apiFolderPath, 'package.json');
+
+  // Write the JSON string to the package.json file
+  writeFileSync(packageJsonPath, packageJsonString);
+
+  console.log('Generated package.json file');
+
+  const npmInstallProcess = shell.exec('npm install', { cwd: apiFolderPath, stdio: 'inherit', silent: true });
+  if (npmInstallProcess.code === 0) {
+    console.log('npm install completed.');
+  } else {
+    console.error('Error running npm install.');
+  }
+
+    // Run npm tsc --init and npm add -D ts-node-dev
+    const tscInitProcess = shell.exec('npx tsc --init', { cwd: apiFolderPath, stdio: 'inherit', silent: true });
+    if (tscInitProcess.code === 0) {
+      console.log('npx tsc --init completed.');
+    } else {
+      console.error('Error running npm tsc --init.');
+    }
+  
+    const tsNodeDevProcess = shell.exec('npm add -D ts-node-dev', { cwd: apiFolderPath, stdio: 'inherit', silent: true });
+    if (tsNodeDevProcess.code === 0) {
+      console.log('npm add -D ts-node-dev completed.');
+    } else {
+      console.error('Error running npm add -D ts-node-dev.');
+    }
+}
+
+
+function generateReactApp(projectPath) {
+  console.log('Generating React app with TypeScript support...');
+
+  const reactInstallProcess = shell.exec(
+    `npx create-next-app@latest ${projectPath}/client --typescript --eslint --tailwind --no-src-dir --app --import-alias @`,
+    { stdio: 'inherit', silent: true }
+  );
+
+  if (reactInstallProcess.code === 0) {
+    console.log('React app created.');
+  } else {
+    console.error('Error creating React app.');
+  }
 }
