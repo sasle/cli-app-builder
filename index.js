@@ -62,32 +62,33 @@ function generatePrismaSchema(apiFolderPath) {
   generator client {
     provider = "prisma-client-js"
   }
-  
+
   datasource db {
     provider = "sqlite"
     url      = env("DATABASE_URL")
   }
-model Professional {
-  id        Int    @id @default(autoincrement())
-  name      String
-  company   Company @relation(fields: [companyId], references: [id])
-  companyId Int
-}
 
-model Company {
-  id         Int         @id @default(autoincrement())
-  name       String
-  professionals Professional[]
-  products    Product[]
-}
+  model Professional {
+    id        Int    @id @default(autoincrement())
+    name      String
+    company   Company @relation(fields: [companyId], references: [id])
+    companyId Int
+  }
 
-model Product {
-  id        Int     @id @default(autoincrement())
-  name      String
-  companyId Int
-  company   Company @relation(fields: [companyId], references: [id])
-}
-`;
+  model Company {
+    id         Int         @id @default(autoincrement())
+    name       String
+    professionals Professional[]
+    products    Product[]
+  }
+
+  model Product {
+    id        Int     @id @default(autoincrement())
+    name      String
+    companyId Int
+    company   Company @relation(fields: [companyId], references: [id])
+  }
+  `;
 
   const prismaSchemaPath = path.join(apiFolderPath, "prisma", "schema.prisma");
   shell.mkdir("-p", path.join(apiFolderPath, "prisma"));
@@ -98,25 +99,104 @@ model Product {
 function generateRouterFile(apiFolderPath) {
   const routerContent = `
 import express from 'express';
+import { PrismaClient } from '@prisma/client'; // Import PrismaClient
 
 const router = express.Router();
+const prisma = new PrismaClient(); // Create a PrismaClient instance
 
 // Hello World route
 router.get('/', (req, res) => {
   res.send('Hello, World!');
 });
 
-router.get('/professionals', (req, res) => {
-    // Implement route logic for the "professionals" model
+// Replace GET routes with POST routes and add route logic
+router.post('/professionals', async (req, res) => {
+  try {
+    const professional = await prisma.professional.create({
+      data: {
+        // Replace with actual properties of the "professionals" model
+        name: 'Alice',
+        company: {
+          connect: { id: 1 }, // Connect to an existing company by ID
+        },
+      },
+    });
+    console.log(professional);
+    res.status(201).json(professional);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error creating professional' });
+  }
 });
 
-router.get('/companies', (req, res) => {
-    // Implement route logic for the "companies" model
+router.post('/companies', async (req, res) => {
+  try {
+    const company = await prisma.company.create({
+      data: {
+        // Replace with actual properties of the "companies" model
+        name: 'Company X',
+      },
+    });
+    console.log(company);
+    res.status(201).json(company);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error creating company' });
+  }
 });
 
-router.get('/products', (req, res) => {
-    // Implement route logic for the "products" model
+router.post('/products', async (req, res) => {
+  try {
+    const product = await prisma.product.create({
+      data: {
+        // Replace with actual properties of the "products" model
+        name: 'Product A',
+        company: {
+          connect: { id: 1 }, // Connect to an existing company by ID
+        },
+      },
+    });
+    console.log(product);
+    res.status(201).json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error creating product' });
+  }
 });
+
+// GET route to list professionals
+router.get('/professionals', async (req, res) => {
+  try {
+    const professionals = await prisma.professional.findMany();
+    res.status(200).json(professionals);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error listing professionals' });
+  }
+});
+
+// GET route to list companies
+router.get('/companies', async (req, res) => {
+  try {
+    const companies = await prisma.company.findMany();
+    res.status(200).json(companies);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error listing companies' });
+  }
+});
+
+// GET route to list products
+router.get('/products', async (req, res) => {
+  try {
+    const products = await prisma.product.findMany();
+    res.status(200).json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error listing products' });
+  }
+});
+
 
 export default router;
 `;
@@ -139,7 +219,7 @@ app.use(express.json());
 
 app.use('/', router);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
   console.log(\`Server is running on port \${PORT}\`);
 });
@@ -177,7 +257,6 @@ app.listen(PORT, () => {
 
   // Write the JSON string to the package.json file
   writeFileSync(packageJsonPath, packageJsonString);
-
   console.log("Generated package.json file");
 
   const npmInstallProcess = shell.exec("npm install", {
