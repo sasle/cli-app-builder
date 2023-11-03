@@ -75,25 +75,26 @@ function generatePrismaSchema(apiFolderPath) {
   }
 
   model Professional {
-    id        Int    @id @default(autoincrement())
+    id        Int       @id @default(autoincrement())
     name      String
-    company   Company @relation(fields: [companyId], references: [id])
+    company   Company   @relation(fields: [companyId], references: [id])
     companyId Int
+    products  Product[]
   }
 
   model Company {
-    id         Int         @id @default(autoincrement())
-    name       String
+    id            Int            @id @default(autoincrement())
+    name          String
     professionals Professional[]
-    products    Product[]
   }
 
   model Product {
-    id        Int     @id @default(autoincrement())
-    name      String
-    companyId Int
-    company   Company @relation(fields: [companyId], references: [id])
+    id             Int           @id @default(autoincrement())
+    name           String
+    professional   Professional? @relation(fields: [professionalId], references: [id])
+    professionalId Int?
   }
+  
   `;
 
   const prismaSchemaPath = path.join(apiFolderPath, "prisma", "schema.prisma");
@@ -104,106 +105,187 @@ function generatePrismaSchema(apiFolderPath) {
 
 function generateRouterFile(apiFolderPath) {
   const routerContent = `
-import express from 'express';
-import { PrismaClient } from '@prisma/client'; // Import PrismaClient
-
-const router = express.Router();
-const prisma = new PrismaClient(); // Create a PrismaClient instance
-
-// Hello World route
-router.get('/', (req, res) => {
-  res.send('Hello, World!');
-});
-
-// Replace GET routes with POST routes and add route logic
-router.post('/professionals', async (req, res) => {
-  try {
-    const professional = await prisma.professional.create({
-      data: {
-        // Replace with actual properties of the "professionals" model
-        name: 'Alice',
-        company: {
-          connect: { id: 1 }, // Connect to an existing company by ID
+  import express from "express";
+  import { PrismaClient } from "@prisma/client"; // Import PrismaClient
+  
+  const router = express.Router();
+  const prisma = new PrismaClient(); // Create a PrismaClient instance
+  
+  // GET route to list companies
+  router.get("/companies", async (req, res) => {
+    try {
+      const companies = await prisma.company.findMany();
+      res.status(200).json(companies);
+    } catch (error) {
+      res.status(500).json({ error: "Error listing companies" });
+    }
+  });
+  
+  // POST route to create a new company
+  router.post("/companies", async (req, res) => {
+    try {
+      const { name } = req.body;
+      const company = await prisma.company.create({
+        data: {
+          name,
         },
-      },
-    });
-    console.log(professional);
-    res.status(201).json(professional);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error creating professional' });
-  }
-});
-
-router.post('/companies', async (req, res) => {
-  try {
-    const company = await prisma.company.create({
-      data: {
-        // Replace with actual properties of the "companies" model
-        name: 'Company X',
-      },
-    });
-    console.log(company);
-    res.status(201).json(company);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error creating company' });
-  }
-});
-
-router.post('/products', async (req, res) => {
-  try {
-    const product = await prisma.product.create({
-      data: {
-        // Replace with actual properties of the "products" model
-        name: 'Product A',
-        company: {
-          connect: { id: 1 }, // Connect to an existing company by ID
+      });
+      res.status(201).json(company);
+    } catch (error) {
+      res.status(500).json({ error: "Error creating company" });
+    }
+  });
+  
+  // PUT route to update a company
+  router.put("/companies/:id", async (req, res) => {
+    const { id } = req.params;
+    const { name } = req.body;
+    try {
+      const company = await prisma.company.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
         },
-      },
-    });
-    console.log(product);
-    res.status(201).json(product);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error creating product' });
-  }
-});
-
-// GET route to list professionals
-router.get('/professionals', async (req, res) => {
-  try {
-    const professionals = await prisma.professional.findMany();
-    res.status(200).json(professionals);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error listing professionals' });
-  }
-});
-
-// GET route to list companies
-router.get('/companies', async (req, res) => {
-  try {
-    const companies = await prisma.company.findMany();
-    res.status(200).json(companies);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error listing companies' });
-  }
-});
-
-// GET route to list products
-router.get('/products', async (req, res) => {
-  try {
-    const products = await prisma.product.findMany();
-    res.status(200).json(products);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error listing products' });
-  }
-});
-
-export default router;
+      });
+      res.status(200).json(company);
+    } catch (error) {
+      res.status(500).json({ error: "Error updating company" });
+    }
+  });
+  
+  // DELETE route to delete a company
+  router.delete("/companies/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      await prisma.company.delete({
+        where: { id: parseInt(id) },
+      });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Error deleting company" });
+    }
+  });
+  
+  // GET route to list professionals
+  router.get("/professionals", async (req, res) => {
+    try {
+      const professionals = await prisma.professional.findMany();
+      res.status(200).json(professionals);
+    } catch (error) {
+      res.status(500).json({ error: "Error listing professionals" });
+    }
+  });
+  
+  // POST route to create a new professional
+  router.post("/professionals", async (req, res) => {
+    try {
+      const { name, companyId } = req.body;
+      const professional = await prisma.professional.create({
+        data: {
+          name,
+          companyId,
+        },
+      });
+      res.status(201).json(professional);
+    } catch (error) {
+      res.status(500).json({ error: "Error creating professional" });
+    }
+  });
+  
+  // PUT route to update a professional
+  router.put("/professionals/:id", async (req, res) => {
+    const { id } = req.params;
+    const { name, companyId } = req.body;
+    try {
+      const professional = await prisma.professional.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          companyId,
+        },
+      });
+      res.status(200).json(professional);
+    } catch (error) {
+      res.status(500).json({ error: "Error updating professional" });
+    }
+  });
+  
+  // DELETE route to delete a professional
+  router.delete("/professionals/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      await prisma.professional.delete({
+        where: { id: parseInt(id) },
+      });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Error deleting professional" });
+    }
+  });
+  
+  // GET route to list products
+  router.get("/products", async (req, res) => {
+    try {
+      const products = await prisma.product.findMany();
+      res.status(200).json(products);
+    } catch (error) {
+      res.status(500).json({ error: "Error listing products" });
+    }
+  });
+  
+  // POST route to create a new product
+  router.post("/products", async (req, res) => {
+    try {
+      const { name, professionalId } = req.body;
+      const product = await prisma.product.create({
+        data: {
+          name,
+          professionalId,
+        },
+      });
+      res.status(201).json(product);
+    } catch (error) {
+      res.status(500).json({ error: "Error creating product" });
+    }
+  });
+  
+  // PUT route to update a product
+  router.put("/products/:id", async (req, res) => {
+    const { id } = req.params;
+    const { name, professionalId } = req.body;
+    try {
+      const product = await prisma.product.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          professionalId,
+        },
+      });
+      res.status(200).json(product);
+    } catch (error) {
+      res.status(500).json({ error: "Error updating product" });
+    }
+  });
+  
+  // DELETE route to delete a product
+  router.delete("/products/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      await prisma.product.delete({
+        where: { id: parseInt(id) },
+      });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Error deleting product" });
+    }
+  });
+  
+  // Hello World route
+  router.get("/", (req, res) => {
+    res.send("Hello, World!");
+  });
+  
+  export default router;
 `;
 
   const routerFilePath = path.join(apiFolderPath, "router.ts");
