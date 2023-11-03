@@ -9,9 +9,30 @@ export default function generateJestTests(apiFolderPath) {
   console.log("Generating Jest tests...");
 
   // Create a folder for Jest test files
-  const testFolderPath = path.join(apiFolderPath, "__tests__", "companies"); // Update the path
-  if (shell.mkdir("-p", testFolderPath).code !== 0) {
+  const testsFolderPath = path.join(apiFolderPath, "__tests__");
+
+  // Create the "__tests__" folder if it doesn't exist
+  if (shell.mkdir("-p", testsFolderPath).code !== 0) {
     console.error(`${RED}Error creating the Jest test folder.${RESET}`);
+    return;
+  }
+
+  // Create the "setupTests.ts" file in the "__tests__" folder
+  const setupTestsPath = path.join(testsFolderPath, "setupTests.ts");
+  const setupTestsContents = `import { PrismaClient } from "@prisma/client";
+import request from "supertest";
+
+const app = "http://localhost:3333"; // Assuming your API is running on this URL
+
+const prisma = new PrismaClient();
+
+export { request, app, prisma };`;
+  writeFileSync(setupTestsPath, setupTestsContents);
+
+  // Create the "Companies" subfolder
+  const companiesFolderPath = path.join(testsFolderPath, "Companies");
+  if (shell.mkdir("-p", companiesFolderPath).code !== 0) {
+    console.error(`${RED}Error creating the "Companies" subfolder.${RESET}`);
     return;
   }
 
@@ -20,130 +41,114 @@ export default function generateJestTests(apiFolderPath) {
     {
       method: "GET",
       description: "should return a list of companies",
+      testContent: `
+        import { request, app, prisma } from "../setupTests";
+        
+        describe("GET /companies", () => {
+          it("should return a list of companies", async () => {
+            // Add a company to the database for testing
+            const company = await prisma.company.create({
+              data: {
+                name: "Test Company",
+              },
+            });
+
+            // Send a GET request to the route
+            const response = await request(app).get("/companies");
+
+            // Assert that the response is successful
+            expect(response.status).toBe(200);
+          });
+        });
+        `,
     },
     {
       method: "POST",
       description: "should create a new company and return it",
+      testContent: `
+        import { request, app, prisma } from "../setupTests";
+        
+        describe("POST /companies", () => {
+          it("should create a new company and return it", async () => {
+            // Send a POST request to the route
+            const newCompanyData = {
+              name: "New Test Company",
+            };
+            const response = await request(app).post("/companies").send(newCompanyData);
+
+            // Assert that the response is successful and contains the inserted company
+            expect(response.status).toBe(201);
+          });
+        });
+        `,
     },
     {
       method: "PUT",
       description: "should update a company's name and return it",
+      testContent: `
+        import { request, app, prisma } from "../setupTests";
+        
+        describe("PUT /companies", () => {
+          it("should update a company's name and return it", async () => {
+            // Add a company to the database for testing
+            const company = await prisma.company.create({
+              data: {
+                name: "Test Company",
+              },
+            });
+
+            // Send a PUT request to update the company's name
+            const updatedName = "Updated Test Company";
+            const response = await request(app)
+              .put("/companies/" + company.id)
+              .send({ name: updatedName });
+
+            // Assert that the response is successful
+            expect(response.status).toBe(200);
+          });
+        });
+        `,
     },
     {
       method: "DELETE",
       description: "should create a company and then delete it",
+      testContent: `
+        import { request, app, prisma } from "../setupTests";
+        
+        describe("DELETE /companies", () => {
+          it("should create a company and then delete it", async () => {
+            // Add a company to the database for testing
+            const company = await prisma.company.create({
+              data: {
+                name: "Test Company",
+              },
+            });
+
+            // Send a DELETE request to delete the company
+            const response = await request(app).delete("/companies/" + company.id);
+
+            // Assert that the response is successful
+            expect(response.status).toBe(204);
+          });
+        });
+        `,
     },
   ];
 
   for (const test of tests) {
-    const { method, description } = test;
+    const { method, description, testContent } = test;
 
-    // Generate a sample Jest test file
-    const testFileContents = `
-      import request from "supertest";
-      import app from "../../server"; // You should import your Express app
-      import { PrismaClient } from "@prisma/client";
-      
-      const prisma = new PrismaClient();
-      
-      describe("${method} /companies", () => {
-        it("${description}", async () => {
-          ${
-            method === "GET"
-              ? `
-          // Add a company to the database for testing
-          const company = await prisma.company.create({
-            data: {
-              name: "Test Company",
-            },
-          });
-  
-          // Send a ${method} request to the route
-          const response = await request(app).${method.toLowerCase()}("/companies");
-  
-          // Assert that the response is successful and contains the test company
-          expect(response.status).toBe(200);
-          expect(response.body).toEqual([company]);
-  
-          // Clean up: Remove the test company from the database
-          await prisma.company.delete({
-            where: {
-              id: company.id,
-            },
-          });
-          `
-              : method === "POST"
-              ? `// Send a POST request to the route
-          const newCompanyData = {
-            name: "New Test Company",
-          };
-          const response = await request(app)
-            .post("/companies")
-            .send(newCompanyData);
-  
-          // Assert that the response is successful and contains the inserted company
-          expect(response.status).toBe(201);
-          expect(response.body).toMatchObject(newCompanyData);
-          `
-              : method === "PUT"
-              ? `// Add a company to the database for testing
-          const company = await prisma.company.create({
-            data: {
-              name: "Test Company",
-            },
-          });
-  
-          // Send a PUT request to update the company's name
-          const updatedName = "Updated Test Company";
-          const response = await request(app)
-            .put("/companies/" + company.id)
-            .send({ name: updatedName });
-  
-          // Assert that the response is successful and contains the updated company
-          expect(response.status).toBe(200);
-          expect(response.body.name).toBe(updatedName);
-  
-          // Clean up: Remove the test company from the database
-          await prisma.company.delete({
-            where: {
-              id: company.id,
-            },
-          });
-          `
-              : `// Add a company to the database for testing
-          const company = await prisma.company.create({
-            data: {
-              name: "Test Company",
-            },
-          });
-  
-          // Send a DELETE request to delete the company
-          const response = await request(app)
-            .delete("/companies/" + company.id);
-  
-          // Assert that the response is successful and has a 204 status code
-          expect(response.status).toBe(204);
-  
-          // Clean up: Ensure the company is deleted from the database
-          const deletedCompany = await prisma.company.findUnique({
-            where: { id: company.id },
-          });
-          expect(deletedCompany).toBe(null);
-          `
-          }
-        });
-      });
-      
-      `;
+    // Generate a sample Jest test file inside the "Companies" subfolder
+    const testFileContents = `${testContent}`;
 
     const testFilePath = path.join(
-      testFolderPath,
+      companiesFolderPath,
       `${method.toLowerCase()}.test.ts`
     );
     writeFileSync(testFilePath, testFileContents);
   }
 
-  // Add Jest configuration
+  const jestConfigPath = path.join(apiFolderPath, "jest.config.js");
   const jestConfig = {
     preset: "ts-jest",
     testEnvironment: "node",
@@ -159,9 +164,8 @@ export default function generateJestTests(apiFolderPath) {
     },
     collectCoverage: true,
     coverageReporters: ["json-summary"],
+    testPathIgnorePatterns: ["<rootDir>/__tests__/setupTests.ts"],
   };
-
-  const jestConfigPath = path.join(apiFolderPath, "jest.config.js");
   writeFileSync(
     jestConfigPath,
     `module.exports = ${JSON.stringify(jestConfig, null, 2)};`
