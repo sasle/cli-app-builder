@@ -33,8 +33,8 @@ export default function generatePrismaSchema(apiFolderPath) {
     model Product {
       id             Int           @id @default(autoincrement())
       name           String
-      professional   Professional? @relation(fields: [professionalId], references: [id])
-      professionalId Int?
+      professional   Professional @relation(fields: [professionalId], references: [id])
+      professionalId Int
     }
     
     `;
