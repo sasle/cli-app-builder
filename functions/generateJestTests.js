@@ -58,6 +58,9 @@ export { request, app, prisma };`;
 
             // Assert that the response is successful
             expect(response.status).toBe(200);
+            await prisma.company.delete({
+              where: { id: company.id },
+            });
           });
         });
         `,
@@ -78,6 +81,9 @@ export { request, app, prisma };`;
 
             // Assert that the response is successful and contains the inserted company
             expect(response.status).toBe(201);
+            await prisma.company.delete({
+              where: { id: response.body.id },
+            });
           });
         });
         `,
@@ -105,6 +111,9 @@ export { request, app, prisma };`;
 
             // Assert that the response is successful
             expect(response.status).toBe(200);
+            await prisma.company.delete({
+              where: { id: company.id },
+            });
           });
         });
         `,
