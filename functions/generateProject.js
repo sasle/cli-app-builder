@@ -34,6 +34,6 @@ export default function generateProject(projectPath, options) {
   if (options.useTDD) {
     generateJestTests(apiFolderPath);
   }
-  generateReactApp(projectPath);
-  console.log(`Project created at ${projectPath}.`);
+  generateReactApp(options.frontendFramework, projectPath);
+  console.log(`Project created at ${projectPath}.\n`);
 }

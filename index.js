@@ -20,10 +20,23 @@ inquirer
       message: "Enter the project name:",
     },
     {
+      type: "list",
+      name: "frontendFramework",
+      message: "Select the project type:",
+      choices: ["React", "Vite"],
+    },
+    {
       type: "confirm",
       name: "useTDD",
       message: "Do you want to use Test-Driven Development (TDD)?",
       default: true,
+    },
+    {
+      type: "list",
+      name: "testingFramework",
+      message: "Select testing framework:",
+      when: (answers) => answers.useTDD,
+      choices: ["Jest", "Vitest"], // Add more options as needed
     },
   ])
   .then((answers) => {
