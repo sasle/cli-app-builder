@@ -5,21 +5,32 @@ const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
 const RESET = "\x1b[0m";
 
-export default function generateJestTests(apiFolderPath) {
-  console.log("Generating Jest tests...");
+export default function generateBackendTests(framework, apiFolderPath) {
+  console.log(`Generating Jest tests for the backend...`);
 
-  // Create a folder for Jest test files
+  // Create a folder for backend test files
   const testsFolderPath = path.join(apiFolderPath, "__tests__");
 
   // Create the "__tests__" folder if it doesn't exist
   if (shell.mkdir("-p", testsFolderPath).code !== 0) {
-    console.error(`${RED}Error creating the Jest test folder.${RESET}`);
+    console.error(`${RED}Error creating the tests folder.${RESET}`);
     return;
   }
 
-  // Create the "setupTests.ts" file in the "__tests__" folder
-  const setupTestsPath = path.join(testsFolderPath, "setupTests.ts");
-  const setupTestsContents = `import { PrismaClient } from "@prisma/client";
+  shell.cd(`${apiFolderPath}`);
+
+  if (framework === "Jest") {
+    shell.exec(
+      "npm install @types/jest@latest ts-jest@latest jest@latest supertest@latest @types/supertest@latest",
+      {
+        stdio: "inherit",
+        silent: true,
+      }
+    );
+
+    // Create the "setupTests.ts" file in the "__tests__" folder
+    const setupTestsPath = path.join(testsFolderPath, "setupTests.ts");
+    const setupTestsContents = `import { PrismaClient } from "@prisma/client";
 import request from "supertest";
 
 const app = "http://localhost:3333"; // Assuming your API is running on this URL
@@ -27,21 +38,21 @@ const app = "http://localhost:3333"; // Assuming your API is running on this URL
 const prisma = new PrismaClient();
 
 export { request, app, prisma };`;
-  writeFileSync(setupTestsPath, setupTestsContents);
+    writeFileSync(setupTestsPath, setupTestsContents);
 
-  // Create the "Companies" subfolder
-  const companiesFolderPath = path.join(testsFolderPath, "Companies");
-  if (shell.mkdir("-p", companiesFolderPath).code !== 0) {
-    console.error(`${RED}Error creating the "Companies" subfolder.${RESET}`);
-    return;
-  }
+    // Create the "Companies" subfolder
+    const companiesFolderPath = path.join(testsFolderPath, "Companies");
+    if (shell.mkdir("-p", companiesFolderPath).code !== 0) {
+      console.error(`${RED}Error creating the "Companies" subfolder.${RESET}`);
+      return;
+    }
 
-  // Define HTTP methods and corresponding descriptions
-  const tests = [
-    {
-      method: "GET",
-      description: "should return a list of companies",
-      testContent: `
+    // Define HTTP methods and corresponding descriptions
+    const tests = [
+      {
+        method: "GET",
+        description: "should return a list of companies",
+        testContent: `
         import { request, app, prisma } from "../setupTests";
         
         describe("GET /companies", () => {
@@ -64,11 +75,11 @@ export { request, app, prisma };`;
           });
         });
         `,
-    },
-    {
-      method: "POST",
-      description: "should create a new company and return it",
-      testContent: `
+      },
+      {
+        method: "POST",
+        description: "should create a new company and return it",
+        testContent: `
         import { request, app, prisma } from "../setupTests";
         
         describe("POST /companies", () => {
@@ -87,11 +98,11 @@ export { request, app, prisma };`;
           });
         });
         `,
-    },
-    {
-      method: "PUT",
-      description: "should update a company's name and return it",
-      testContent: `
+      },
+      {
+        method: "PUT",
+        description: "should update a company's name and return it",
+        testContent: `
         import { request, app, prisma } from "../setupTests";
         
         describe("PUT /companies", () => {
@@ -117,11 +128,11 @@ export { request, app, prisma };`;
           });
         });
         `,
-    },
-    {
-      method: "DELETE",
-      description: "should create a company and then delete it",
-      testContent: `
+      },
+      {
+        method: "DELETE",
+        description: "should create a company and then delete it",
+        testContent: `
         import { request, app, prisma } from "../setupTests";
         
         describe("DELETE /companies", () => {
@@ -141,44 +152,45 @@ export { request, app, prisma };`;
           });
         });
         `,
-    },
-  ];
+      },
+    ];
 
-  for (const test of tests) {
-    const { method, description, testContent } = test;
+    for (const test of tests) {
+      const { method, description, testContent } = test;
 
-    // Generate a sample Jest test file inside the "Companies" subfolder
-    const testFileContents = `${testContent}`;
+      // Generate a sample Jest test file inside the "Companies" subfolder
+      const testFileContents = `${testContent}`;
 
-    const testFilePath = path.join(
-      companiesFolderPath,
-      `${method.toLowerCase()}.test.ts`
+      const testFilePath = path.join(
+        companiesFolderPath,
+        `${method.toLowerCase()}.test.ts`
+      );
+      writeFileSync(testFilePath, testFileContents);
+    }
+
+    const jestConfigPath = path.join(apiFolderPath, "jest.config.js");
+    const jestConfig = {
+      preset: "ts-jest",
+      testEnvironment: "node",
+      roots: ["<rootDir>/__tests__"],
+      transform: {
+        "^.+\\.ts$": "ts-jest",
+      },
+      testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.ts$",
+      moduleFileExtensions: ["ts", "js", "json", "node"],
+      verbose: true,
+      testEnvironmentOptions: {
+        url: "http://localhost",
+      },
+      collectCoverage: true,
+      coverageReporters: ["json-summary"],
+      testPathIgnorePatterns: ["<rootDir>/__tests__/setupTests.ts"],
+    };
+    writeFileSync(
+      jestConfigPath,
+      `module.exports = ${JSON.stringify(jestConfig, null, 2)};`
     );
-    writeFileSync(testFilePath, testFileContents);
+
+    console.log(`${GREEN}Jest configured.${RESET}`);
   }
-
-  const jestConfigPath = path.join(apiFolderPath, "jest.config.js");
-  const jestConfig = {
-    preset: "ts-jest",
-    testEnvironment: "node",
-    roots: ["<rootDir>/__tests__"],
-    transform: {
-      "^.+\\.ts$": "ts-jest",
-    },
-    testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.ts$",
-    moduleFileExtensions: ["ts", "js", "json", "node"],
-    verbose: true,
-    testEnvironmentOptions: {
-      url: "http://localhost",
-    },
-    collectCoverage: true,
-    coverageReporters: ["json-summary"],
-    testPathIgnorePatterns: ["<rootDir>/__tests__/setupTests.ts"],
-  };
-  writeFileSync(
-    jestConfigPath,
-    `module.exports = ${JSON.stringify(jestConfig, null, 2)};`
-  );
-
-  console.log(`${GREEN}Jest configured.${RESET}`);
 }

@@ -5,8 +5,8 @@ import generateEnvFile from "./generateEnvFile.js";
 import generatePrismaSchema from "./generatePrismaSchema.js";
 import generateRouterFile from "./generateRouterFile.js";
 import generateServerFile from "./generateServerFile.js";
-import generateJestTests from "./generateJestTests.js";
 import generateReactApp from "./generateReactApp.js";
+import generateBackendTests from "./generateBackendTests.js";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -30,10 +30,19 @@ export default function generateProject(projectPath, options) {
   generateEnvFile(apiFolderPath);
   generatePrismaSchema(apiFolderPath);
   generateRouterFile(apiFolderPath);
-  generateServerFile(apiFolderPath);
-  if (options.useTDD) {
-    generateJestTests(apiFolderPath);
+  generateServerFile(
+    options.backendTesting,
+    options.backendTestingFramework,
+    apiFolderPath
+  );
+  if (options.backendTesting) {
+    generateBackendTests(options.backendTestingFramework, apiFolderPath);
   }
-  generateReactApp(options.frontendFramework, projectPath);
+  generateReactApp(
+    options.frontendTesting,
+    options.frontendTestingFramework,
+    options.frontendFramework,
+    projectPath
+  );
   console.log(`Project created at ${projectPath}.\n`);
 }

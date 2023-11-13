@@ -23,20 +23,32 @@ inquirer
       type: "list",
       name: "frontendFramework",
       message: "Select the project type:",
-      choices: ["React", "Vite"],
+      choices: ["Vite", "React"],
     },
     {
       type: "confirm",
-      name: "useTDD",
-      message: "Do you want to use Test-Driven Development (TDD)?",
+      name: "backendTesting",
+      message: "Do you want tests for the backend?",
       default: true,
     },
     {
       type: "list",
-      name: "testingFramework",
-      message: "Select testing framework:",
-      when: (answers) => answers.useTDD,
-      choices: ["Jest", "Vitest"], // Add more options as needed
+      name: "backendTestingFramework",
+      message: "Do you want tests for the backend?",
+      choices: ["Jest"],
+    },
+    {
+      type: "confirm",
+      name: "frontendTesting",
+      message: "Do you want tests for the frontend?",
+      default: true,
+    },
+    {
+      type: "list",
+      name: "frontendTestingFramework",
+      message: "Select testing framework for the frontend:",
+      when: (answers) => answers.frontendTesting,
+      choices: ["Vitest", "Jest"],
     },
   ])
   .then((answers) => {

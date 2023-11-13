@@ -1,9 +1,15 @@
 import shell from "shelljs";
+import generateFrontendTests from "./generateFrontendTests.js";
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
 const RESET = "\x1b[0m";
 
-export default function generateReactApp(framework, projectPath) {
+export default function generateReactApp(
+  hasTesting,
+  testingFramework,
+  framework,
+  projectPath
+) {
   console.log(`Generating ${framework} app...`);
 
   if (framework === "React") {
@@ -20,7 +26,7 @@ export default function generateReactApp(framework, projectPath) {
         shell.mkdir("lib");
       }
       shell.exec(
-        "npm install axios@latest devextreme@latest devextreme-react@latest --save --save-exact",
+        "npm install axios@latest devextreme@latest devextreme-react@latest --save ",
         {
           stdio: "inherit",
           silent: true,
@@ -185,7 +191,7 @@ export default function generateReactApp(framework, projectPath) {
       shell.mkdir("lib");
     }
     shell.exec(
-      "npm install axios@latest devextreme@latest devextreme-react@latest --save --save-exact",
+      "npm install axios@latest devextreme@latest devextreme-react@latest --save ",
       {
         stdio: "inherit",
         silent: true,
@@ -331,5 +337,9 @@ export default function generateReactApp(framework, projectPath) {
     } else {
       console.error(`${RED}Error creating Vite app.${RESET}`);
     }
+  }
+
+  if (hasTesting) {
+    generateFrontendTests(testingFramework, projectPath);
   }
 }

@@ -5,7 +5,11 @@ const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
 const RESET = "\x1b[0m";
 
-export default function generateServerFile(apiFolderPath) {
+export default function generateServerFile(
+  hasTesting,
+  testingFramework,
+  apiFolderPath
+) {
   const serverContent = `
   import express from 'express';
   import cors from 'cors';
@@ -29,7 +33,6 @@ export default function generateServerFile(apiFolderPath) {
   const serverFilePath = path.join(apiFolderPath, "server.ts");
   writeFileSync(serverFilePath, serverContent);
   console.log(`${GREEN}Generated server.ts file.${RESET}`);
-
   const packageJsonContent = {
     name: "api",
     version: "1.0.0",
@@ -37,25 +40,12 @@ export default function generateServerFile(apiFolderPath) {
     main: "server.ts",
     scripts: {
       dev: "ts-node-dev --inspect --transpile-only --ignore-watch node_modules server.ts",
-      test: "jest",
-    },
-    dependencies: {
-      express: "^4.18.2",
-      cors: "^2.8.5",
-    },
-    devDependencies: {
-      "@types/node": "^20.8.10",
-      "@types/express": "^4.17.20",
-      "@types/cors": "2.8.15",
-      "@types/jest": "^29.5.7",
-      "@types/supertest": "^2.0.15",
-      typescript: "^5.2.2",
-      prisma: "^5.5.2",
-      "ts-jest": "^29.1.1",
-      jest: "^29.7.0",
-      supertest: "^6.3.3",
     },
   };
+
+  if (hasTesting) {
+    packageJsonContent.scripts.test = testingFramework.toLowerCase();
+  }
 
   // Convert packageJsonContent to a JSON string
   const packageJsonString = JSON.stringify(packageJsonContent, null, 2);
@@ -67,11 +57,14 @@ export default function generateServerFile(apiFolderPath) {
   console.log(`${GREEN}Generated package.json file.${RESET}`);
   console.log(`Installing backend dependencies...`);
 
-  const npmInstallProcess = shell.exec("npm install", {
-    cwd: apiFolderPath,
-    stdio: "inherit",
-    silent: true,
-  });
+  const npmInstallProcess = shell.exec(
+    "npm install express@latest cors@latest --save && npm install @types/node@latest @types/express@latest @types/cors@latest typescript@latest prisma@latest --save-dev",
+    {
+      cwd: apiFolderPath,
+      stdio: "inherit",
+      silent: true,
+    }
+  );
   if (npmInstallProcess.code === 0) {
     console.log(`${GREEN}npm install completed.${RESET}`);
   } else {
