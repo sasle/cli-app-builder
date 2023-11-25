@@ -34,7 +34,8 @@ inquirer
     {
       type: "list",
       name: "backendTestingFramework",
-      message: "Do you want tests for the backend?",
+      message: "Select testing framework for the backend:",
+      when: (answers) => answers.backendTesting,
       choices: ["Jest"],
     },
     {
